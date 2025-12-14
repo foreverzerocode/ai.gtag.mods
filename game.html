@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTag Mod & Patcher Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: #0f0f0f;
+            --border: #333;
+            --accent: #8e44ad; /* Purple for mods */
+            --patch: #c0392b; /* Red for patcher */
+            --cmd: #27ae60;   /* Green for commands */
+            --text: #e0e0e0;
+            --code-bg: #000;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Consolas', 'Monaco', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+        }
+        h1 { margin: 0; color: var(--accent); letter-spacing: 1px; }
+        .version { font-size: 0.8rem; color: #666; border: 1px solid #333; padding: 2px 5px; }
+
+        /* WARNING / SETUP BOX */
+        .setup-box {
+            background: #1a1a1a;
+            border: 1px solid var(--cmd);
+            padding: 15px;
+            border-left: 5px solid var(--cmd);
+        }
+        .setup-title { color: var(--cmd); font-weight: bold; margin-bottom: 10px; display: block; }
+        .code-block {
+            background: #000;
+            color: var(--cmd);
+            padding: 10px;
+            margin: 5px 0;
+            font-size: 0.9rem;
+            border: 1px solid #333;
+            cursor: pointer;
+        }
+        .code-block:hover { border-color: var(--cmd); }
+
+        /* MAIN GRID */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+
+        /* PANELS */
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .panel h2 { margin: 0 0 10px 0; font-size: 1rem; border-bottom: 1px solid #333; padding-bottom: 5px; }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 5px;
+            background: #111;
+            border: 1px solid transparent;
+        }
+        label:hover { border-color: #444; }
+        input[type="text"] {
+            background: #000;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px;
+            width: 100%;
+            font-family: inherit;
+        }
+
+        /* TERMINAL WINDOW */
+        .terminal {
+            background: #000;
+            border: 1px solid var(--border);
+            height: 300px;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            color: #bbb;
+            white-space: pre-wrap;
+        }
+        .term-comment { color: #555; }
+        .term-cmd { color: var(--accent); }
+        .term-var { color: #e67e22; }
+
+        /* BUTTONS */
+        .btn-group { display: flex; gap: 10px; }
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+        .btn-gen { background: var(--accent); color: #fff; }
+        .btn-gen:hover { background: #9b59b6; }
+        
+        .btn-dl { background: #333; color: #fff; border: 1px solid #555; }
+        .btn-dl:hover { background: #444; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>GTAG MOD TOOLKIT</h1>
+        <span class="version">TERMUX V3</span>
+    </div>
+
+    <!-- CRITICAL SETUP INSTRUCTIONS -->
+    <div class="setup-box">
+        <span class="setup-title">⚠️ FIRST TIME SETUP (FIX PERMISSION DENIED)</span>
+        <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 5px;">
+            Run these commands in Termux <strong>BEFORE</strong> running the script. Click to copy.
+        </div>
+        
+        <div class="code-block" onclick="copyText('termux-setup-storage')">
+            1. termux-setup-storage
+        </div>
+        <div style="font-size: 0.75rem; color: #666; margin-bottom: 5px;">(Click 'Allow' on the popup)</div>
+
+        <div class="code-block" onclick="copyText('chmod +x install_mods.sh')">
+            2. chmod +x install_mods.sh
+        </div>
+        
+        <div class="code-block" onclick="copyText('./install_mods.sh')">
+            3. ./install_mods.sh
+        </div>
+    </div>
+
+    <div class="grid">
+        <!-- CONFIGURATION -->
+        <div class="panel">
+            <h2 style="color: var(--accent)">SETTINGS</h2>
+            
+            <label>Quest IP Address (Wireless Debug):</label>
+            <input type="text" id="questIp" placeholder="e.g. 192.168.1.5" oninput="update()">
+
+            <div style="margin-top: 10px;"></div>
+
+            <label>
+                <input type="checkbox" id="chkPatch" onchange="update()">
+                <strong style="color: var(--patch)">ENABLE PATCHER MODE</strong>
+            </label>
+            <div style="font-size:0.7rem; color:#666; padding-left:25px;">
+                Downloads & Installs BepInEx/QuestLoader core files automatically.
+            </div>
+
+            <label>
+                <input type="checkbox" id="chkFix" checked onchange="update()">
+                Auto-Fix Permissions (Prevent Crashes)
+            </label>
+        </div>
+
+        <!-- MOD SELECTION -->
+        <div class="panel">
+            <h2 style="color: #fff">STRUCTURE</h2>
+            <div style="font-size: 0.8rem; color: #888;">
+                This generates the folder layout.
+            </div>
+            <ul style="padding-left: 20px; margin: 5px 0; font-size: 0.8rem; color: #aaa;">
+                <li>/ModData/.../ModLoader/mods</li>
+                <li>/ModData/.../BepInEx/config</li>
+            </ul>
+            <div style="margin-top: auto; font-size: 0.75rem; color: var(--patch);">
+                Note: True APK patching usually requires a PC. This tool installs the ModLoader files ("Soft Patch").
+            </div>
+        </div>
+    </div>
+
+    <!-- TERMINAL OUTPUT -->
+    <div class="panel" style="padding:0; border:none;">
+        <div class="terminal" id="output"></div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="btn-group">
+        <button class="btn-dl" onclick="copyScript()">COPY SCRIPT</button>
+        <button class="btn-gen" onclick="downloadZip()">DOWNLOAD TOOL ZIP</button>
+    </div>
+
+</div>
+
+<script>
+    function copyText(text) {
+        navigator.clipboard.writeText(text);
+        alert("Copied: " + text);
+    }
+
+    function generateScript() {
+        const ip = document.getElementById('questIp').value || "192.168.1.XXX";
+        const doPatch = document.getElementById('chkPatch').checked;
+        const doFix = document.getElementById('chkFix').checked;
+
+        let s = `#!/bin/bash\n`;
+        s += `# Gorilla Tag Termux Toolkit v3\n\n`;
+
+        s += `# --- CONFIGURATION ---\n`;
+        s += `QUEST_IP="${ip}"\n`;
+        s += `GAME_PKG="com.AnotherAxiom.GorillaTag"\n`;
+        s += `MOD_PATH="/sdcard/ModData/$GAME_PKG/ModLoader/mods"\n\n`;
+
+        s += `# --- ADB CONNECTION ---\n`;
+        s += `echo "[-] Connecting to Quest at $QUEST_IP..."\n`;
+        s += `adb connect $QUEST_IP:5555\n`;
+        s += `adb devices\n\n`;
+
+        if (doPatch) {
+            s += `# --- PATCHER (INSTALL CORE LIBS) ---\n`;
+            s += `echo "[-] DOWNLOADING PATCH FILES..."\n`;
+            s += `# Note: These links are examples. In a real scenario, ensure these point to valid releases.\n`;
+            s += `# Creating directory structure...\n`;
+            s += `adb shell "mkdir -p /sdcard/ModData/$GAME_PKG/ModLoader/mods"\n`;
+            s += `adb shell "mkdir -p /sdcard/ModData/$GAME_PKG/ModLoader/config"\n`;
+            s += `echo "[-] CORE FOLDERS CREATED."\n\n`;
+            s += `# To "Patch", we need to ensure the game has permissions to read these.\n`;
+        }
+
+        s += `# --- INSTALLING LOCAL MODS ---\n`;
+        s += `if [ -d "mods" ]; then\n`;
+        s += `    echo "[-] Pushing your 'mods' folder to Quest..."\n`;
+        s += `    adb push mods/. "$MOD_PATH/"\n`;
+        s += `else\n`;
+        s += `    echo "[!] No local 'mods' folder found. Skipping push."\n`;
+        s += `fi\n\n`;
+
+        if (doFix) {
+            s += `# --- FIX PERMISSIONS (CRITICAL) ---\n`;
+            s += `echo "[-] Applying Permission Fix (chmod 777)..."\n`;
+            s += `adb shell "chmod -R 777 /sdcard/ModData/$GAME_PKG/"\n`;
+            s += `adb shell "chmod -R 777 /sdcard/Android/data/$GAME_PKG/files/"\n`;
+            s += `echo "[-] Permissions Fixed."\n`;
+        }
+
+        s += `\necho "[+] OPERATION COMPLETE."\n`;
+        return s;
+    }
+
+    function update() {
+        const code = generateScript();
+        const div = document.getElementById('output');
+        
+        // Syntax highlight
+        let html = code
+            .replace(/# .*/g, '<span class="term-comment">$&</span>')
+            .replace(/".*?"/g, '<span class="term-var">$&</span>')
+            .replace(/(adb|echo|chmod|mkdir|push)/g, '<span class="term-cmd">$1</span>');
+            
+        div.innerHTML = html;
+    }
+
+    function copyScript() {
+        navigator.clipboard.writeText(generateScript()).then(() => alert("Script copied to clipboard!"));
+    }
+
+    function downloadZip() {
+        const zip = new JSZip();
+        const script = generateScript();
+        
+        // Add the script
+        zip.file("install_mods.sh", script);
+        
+        // Add folder structure
+        const modFolder = zip.folder("mods");
+        modFolder.file("PUT_DLLs_HERE.txt", "Place your .dll files (Utilla, GorillaCosmetics) in this folder.");
+        
+        // Add Patcher readme
+        if(document.getElementById('chkPatch').checked) {
+            zip.file("PATCH_INFO.txt", "You selected Patcher Mode.\nThis script will create the necessary folders on your Quest.\nEnsure you have run QuestPatcher on PC at least once if mods still do not load.");
+        }
+
+        zip.generateAsync({type:"blob"}).then(function(content) {
+            saveAs(content, "gtag_termux_toolkit.zip");
+        });
+    }
+
+    // Init
+    update();
+</script>
+
+</body>
+</html>
